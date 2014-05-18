@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+canvas {
+	border-style: dotted;
+	border-width: 5px;
+	margin-top: 1%;
+}
+body {
+	text-align: center;
+}
+h2 {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    margin: auto;
+}
+#container {
+	display: inline-block;
+}
+#points {
+	font-size: 20px;
+	float: left;
+}
+</style>
+</head>
+<body>
+<h1>Snake</h1>
+<br>
+<div id="container">
+	<div id="game">
+	<canvas id="snake">
+		Javascript needs to be supported.
+	</canvas>
+	</div>
+	<br>
+	<div id="points">
+		Points:
+	</div>
+</div>
+<script>
+	TILE_SIZE = 15;
+	TILE_X = 30;
+	TILE_Y = 30;
+
+	SPAWN_SIZE = 3;
+
+	REFRESH_RATE = 50;
+
+	UP = 0, RIGHT = 1, DOWN = 2, LEFT = 3;
+	numPoints = 0;
+	dead = false;
+
+	container = document.getElementById("container");
+	canvas = document.getElementById("snake");
+	points = document.getElementById("points");
+	ctx = canvas.getContext("2d");
+
+	points.innerHTML = "Points: " + numPoints;
+
+	canvas.width = TILE_X * TILE_SIZE;
+	canvas.height = TILE_Y * TILE_SIZE;
+	container.style.width = canvas.width + "px";
+	container.style.height = canvas.height + "px";
+
+	snake = [];
+	direction = DOWN;
+	spawnSnake = function(x, y){
+		for(i = 0; i < SPAWN_SIZE; i++){
+			snake.unshift([x, y + i]);
+		}
+	}
+
+	moveSnake = function(direction, keep){
+		x = snake[0][0];
+		y = snake[0][1];
+
+		switch( direction ){
+			case UP:
+				y--;
+				break;
+			case RIGHT:
+				x++;
+				break;
+			case DOWN:
+				y++;
+				break;
+			case LEFT:
+				x--;
+				break;
+			default:
+				return;
+
+		}
+
+		snake.unshift([x, y]);
+
+		if(!keep)
+			snake.pop();
+	}
+
+	checkCollision = function(){
+		x = snake[0][0];
+		y = snake[0][1];
+
+		for(i = 1; i < snake.length; i++){
+			partX = snake[i][0];
+			partY = snake[i][1];
+
+			if(x == partX && y == partY){
+				dead = true;
+			}
+		}
+
+		for(i = 0; i < food.length; i++){
+			foodX = food[0];
+			foodY = food[1];
+
+			if(x == foodX && y == foodY){
+				eatFood(i);
+			}
+		}
+
+		if(y > TILE_Y - 1){
+			snake[0][1] = 0;
+		} else if(y < 0){
+			snake[0][1] = TILE_Y - 1;
+		} else if(x > TILE_X - 1){
+			snake[0][0] = 0;
+		} else if(x < 0){
+			snake[0][0] = TILE_X - 1;
+		}
+	}
+
+	// Spawn position
+	spawnSnake(Math.floor(TILE_X / 2), Math.floor(TILE_Y / 2) );
+
+	food = [0, 0];
+
+	eatFood = function(i){
+		moveSnake(direction, true);
+		numPoints = numPoints + 1;
+		points.innerHTML = "Points: " + numPoints;
+
+		placeFood();
+	}
+
+	placeFood = function(){
+		// TO-DO: Better way to do this..
+		while(true){
+			pos = [Math.floor( (Math.random() * (canvas.width/TILE_SIZE) ) ), Math.floor( (Math.random() * (canvas.height/TILE_SIZE) ) ) ];
+			occupied = false;
+
+			for(i = 1; i < snake.length; i++){
+				partX = snake[i][0];
+				partY = snake[i][1];
+
+				if(pos[0] == partX && pos[1] == partY){
+					occupied = true;
+					break;
+				}
+			}
+
+			if(occupied)
+				continue;
+
+			for(i = 0; i < food.length; i++){
+				foodX = food[0];
+				foodY = food[1];
+
+				if(pos[0] == foodX && pos[1] == foodY){
+					occupied = true;
+					break;
+				}
+			}
+
+			if(occupied)
+				continue;
+
+			food = pos;
+			break;
+		}
+	}
+
+	draw = function(){
+		ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+		for(i = 0; i < snake.length; i++){
+			x = snake[i][0];
+			y = snake[i][1];
+			ctx.fillRect(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+		}
+		for(i = 0; i < food.length; i++){
+			x = food[0];
+			y = food[1];
+
+			ctx.beginPath();
+			ctx.arc( (x * TILE_SIZE) + (TILE_SIZE / 2), (y * TILE_SIZE) + (TILE_SIZE / 2), TILE_SIZE / 2, 0, 2*Math.PI);
+			ctx.fill();
+			ctx.closePath();
+		}
+	}
+
+	gameLoop = function(){
+		if(dead){
+			setTimeout(function(){
+				document.getElementById("game").innerHTML = "<h2>GAME OVER<br>Points collected: " + numPoints + "</h2>";
+				points.innerHTML = "";
+			}, 1000);
+			return;
+		}
+
+		moveSnake(direction);
+		checkCollision();
+
+		draw();
+		lastDirection = direction;
+
+		setTimeout(gameLoop, REFRESH_RATE)
+	}
+	placeFood();
+	gameLoop();
+
+	document.addEventListener("keydown", function(e){
+		switch(e.keyCode){
+			case 37:
+				if( lastDirection == RIGHT )
+					return;
+
+				direction = LEFT;
+				break;
+			case 38:
+				if( lastDirection == DOWN )
+					return;
+
+				direction = UP;
+				break;
+			case 39:
+				if( lastDirection == LEFT )
+					return;
+
+				direction = RIGHT;
+				break;
+			case 40:
+				if( lastDirection == UP )
+					return;
+
+				direction = DOWN;
+				break;
+		} 
+	})
+
+</script>
+</body>
+</html>
